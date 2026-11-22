@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, shrink-to-fit=no, viewport-fit=cover">
+<title>鱼窝编辑器 · 自研预览</title>
+<link rel="stylesheet" href="style.css?v=18">
+</head>
+<body>
+<div class="topbar">
+  <div class="brand">
+    <span class="brand-badge">鱼</span>
+    <span class="brand-text">鱼窝编辑器 · 自研版</span>
+  </div>
+  <span class="save-status" id="save-status"></span>
+  <div class="topbar-actions">
+    <button id="btn-image" type="button" class="tbtn">插图</button>
+    <button id="btn-export" type="button" class="tbtn">导出 .md</button>
+    <button id="btn-preview" type="button" class="tbtn">预览</button>
+    <button id="btn-fullscreen" type="button" class="tbtn">全屏</button>
+    <button id="btn-about" type="button" class="tbtn">关于</button>
+    <a href="/" id="btn-home" class="tbtn">返回鱼窝</a>
+  </div>
+</div>
+<div id="toolbar"></div>
+<div id="mobile-tabs">
+  <button type="button" data-m="edit" class="active">编辑</button>
+  <button type="button" data-m="preview">预览</button>
+</div>
+<div id="split">
+  <div id="editor"></div>
+  <div id="divider"></div>
+  <div id="preview-wrap">
+    <div id="preview"></div>
+    <div id="word-count"></div>
+  </div>
+</div>
+<script src="bundle.js?v=27"></script>
+</body>
+</html>
