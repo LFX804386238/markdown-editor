@@ -2,6 +2,8 @@
 
 自研 Markdown 编辑器：CodeMirror 6 内核，外壳、工具栏与短代码渲染均为鱼窝自研。
 
+![编辑器预览](docs/preview.png)
+
 ## 文件结构
 
 ```
