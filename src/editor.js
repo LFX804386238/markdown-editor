@@ -40,7 +40,7 @@ const DEFAULT_DOC = `{mtitle title="鱼窝编辑器 · 全功能体验记"/}
 2. 有序列表二
 - [x] 撤销 / 重做
 - [x] 草稿自动保存
-- [ ] 正式接入鱼窝（等你点头）
+- [x] 正式接入鱼窝（2026-11-22）
 
 ## 代码块（语言标识 + 一键复制）
 
@@ -107,7 +107,7 @@ const editor = "自研";  // 换个语言试试
 借鉴参考稿：嵌套引用、代码块复制、窄屏双标签
 {/timeline-item}
 {timeline-item color="#ed4014"}
-待定：正式接入鱼窝站
+已正式接入鱼窝站
 {/timeline-item}
 {/timeline}
 
