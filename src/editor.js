@@ -477,7 +477,7 @@ const PALETTE = [
   "#2d8cf0", "#50bfff", "#6236ff", "#9c27b0",
   "#ff69b4", "#8b4513",
 ];
-let paletteEl = null, paletteSel = null;
+let paletteEl = null, paletteSel = null, paletteBtn = null;
 function buildPalette() {
   const p = document.createElement("div");
   p.className = "fw-palette";
@@ -499,10 +499,12 @@ function buildPalette() {
 }
 function closePalette() {
   if (paletteEl) { paletteEl.remove(); paletteEl = null; }
+  paletteBtn = null;
 }
 function togglePalette(btn) {
   if (paletteEl) { closePalette(); return; }
   /* 点面板会让编辑器失焦，先存当前选区 */
+  paletteBtn = btn;
   const sel = view.state.selection.main;
   paletteSel = { from: sel.from, to: sel.to, text: view.state.sliceDoc(sel.from, sel.to) };
   paletteEl = buildPalette();
@@ -525,7 +527,7 @@ function applyColor(c) {
 document.addEventListener("click", e => {
   if (!paletteEl || paletteEl.contains(e.target)) return;
   /* 颜色按钮自身的点击由 togglePalette 切换，不在此关闭 */
-  if (e.target.closest && e.target.closest('#toolbar button[title="文字颜色"]')) return;
+  if (paletteBtn && (e.target === paletteBtn || paletteBtn.contains(e.target))) return;
   closePalette();
 });
 
@@ -606,197 +608,237 @@ const editorTheme = EditorView.theme({
   ".cm-activeLineGutter": { background: "#eef2f5", color: "#5a6b7b" },
 });
 
-/* ---------- 初始化 ---------- */
-const DRAFT_KEY = "yuwu_draft_v2_" + (location.pathname || "default");
-const editorEl = document.getElementById("editor");
-const previewEl = document.getElementById("preview");
-const statusEl = document.getElementById("save-status");
-bindPreviewEvents(previewEl);
+/* ---------- 工厂：演示页与嵌入模式共用 ---------- */
+let view = null;
+function createYuwuEditor(opts) {
+  const editorEl = opts.editorEl;
+  const previewEl = opts.previewEl || null;
+  const statusEl = opts.statusEl || null;
+  const wordCountEl = opts.wordCountEl || null;
+  const draftKey = opts.draftKey || null;
+  if (previewEl) bindPreviewEvents(previewEl);
 
-let saveTimer = null;
-function updateWordCount() {
-  const wc = document.getElementById("word-count");
-  if (!wc) return;
-  const clone = previewEl.cloneNode(true);
-  clone.querySelectorAll(".fw-code-head").forEach(n => n.remove()); /* 复制按钮等控件不计入 */
-  wc.textContent = (clone.textContent || "").replace(/\s/g, "").length + " 字";
-}
-function updatePreview() {
-  previewEl.innerHTML = renderPreview(view.state.doc.toString());
-  enhanceCodeBlocks(previewEl);
-  updateWordCount();
-}
-function scheduleSave() {
-  statusEl.textContent = "输入中…";
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
-    try {
-      localStorage.setItem(DRAFT_KEY, view.state.doc.toString());
-      const t = new Date();
-      statusEl.textContent = `草稿已自动保存 ${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
-    } catch (e) { statusEl.textContent = "草稿保存失败（存储空间不足）"; }
-  }, 600);
-}
-
-/* 嵌套代码块：按围栏语言名匹配，未匹配的退回纯文本 */
-const codeLangs = {
-  python: () => python(),
-  javascript: () => javascript(),
-  typescript: () => javascript({ typescript: true }),
-  bash: () => new LanguageSupport(StreamLanguage.define(shell)),
-  sh: () => new LanguageSupport(StreamLanguage.define(shell)),
-};
-const mdLang = markdown({
-  base: markdownLanguage,
-  codeLanguages: (info) => (codeLangs[info?.toLowerCase()]?.() ?? null),
-});
-
-const view = new EditorView({
-  parent: editorEl,
-  state: EditorState.create({
-    doc: localStorage.getItem(DRAFT_KEY) || DEFAULT_DOC,
-    extensions: [
-      lineNumbers(),
-      history(),
-      search(),
-      highlightSelectionMatches(),
-      closeBrackets(),
-      keymap.of([
-        indentWithTab,
-        { key: "Enter", run: listEnter },
-        { key: "Mod-e", run: centerToggle },
-        ...historyKeymap,
-        ...searchKeymap,
-      ]),
-      mdLang,
-      syntaxHighlighting(fwHighlight),
-      editorTheme,
-      EditorView.domEventHandlers({
-        paste(e, v) {
-          const text = e.clipboardData?.getData("text/plain");
-          if (!text || !/^https?:\/\/\S+\.(png|jpe?g|gif|webp|bmp|svg)(\?\S*)?$/i.test(text.trim())) return false;
-          e.preventDefault();
-          const url = text.trim();
-          v.dispatch({ changes: { from: v.state.selection.main.from, to: v.state.selection.main.to, insert: `![图片](${url})` } });
-          return true;
-        },
-      }),
-      EditorView.updateListener.of(u => {
-        if (u.docChanged) { updatePreview(); scheduleSave(); }
-      }),
-    ],
-  }),
-});
-
-window.__view = view; /* 调试句柄 */
-
-/* 工具栏渲染 */
-const bar = document.getElementById("toolbar");
-TOOLBAR.forEach(item => {
-  if (item.sep) { bar.appendChild(Object.assign(document.createElement("span"), { className: "tb-sep" })); return; }
-  const b = document.createElement("button");
-  b.type = "button"; b.title = item.title;
-  b.innerHTML = item.icon ? ico(item.icon) : `<span class="tb-text">${item.text}</span>`;
-  b.addEventListener("click", () => item.run(view, b));
-  bar.appendChild(b);
-});
-
-/* 顶栏按钮注入 Lucide 图标 */
-const TOPBAR_ICONS = [
-  ["btn-image", "image-plus"], ["btn-export", "download"], ["btn-preview", "eye"],
-  ["btn-fullscreen", "maximize"], ["btn-about", "info"], ["btn-home", "home"],
-];
-TOPBAR_ICONS.forEach(([id, name]) => {
-  const b = document.getElementById(id);
-  if (!b) return;
-  const label = b.textContent.trim();
-  b.innerHTML = ico(name) + `<span class="tbtn-label">${label}</span>`;
-});
-
-/* 分隔条拖动 */
-const divider = document.getElementById("divider");
-let dragging = false;
-divider.addEventListener("pointerdown", e => { dragging = true; divider.setPointerCapture(e.pointerId); document.body.style.cursor = "col-resize"; });
-divider.addEventListener("pointermove", e => {
-  if (!dragging) return;
-  const wrapRect = document.getElementById("split").getBoundingClientRect();
-  const pct = Math.min(80, Math.max(20, ((e.clientX - wrapRect.left) / wrapRect.width) * 100));
-  editorEl.style.width = pct + "%";
-});
-divider.addEventListener("pointerup", () => { dragging = false; document.body.style.cursor = ""; });
-
-/* 预览开关（手机上由「编辑/预览」双标签接管） */
-const isNarrow = () => window.matchMedia("(max-width: 760px)").matches;
-const previewWrap = document.getElementById("preview-wrap");
-document.getElementById("btn-preview").addEventListener("click", () => {
-  if (isNarrow()) { document.body.classList.toggle("m-preview"); return; }
-  const off = previewWrap.style.display === "none";
-  previewWrap.style.display = off ? "" : "none";
-  divider.style.display = off ? "" : "none";
-});
-
-/* 窄屏「编辑 / 预览」双标签 */
-const mobileTabs = document.getElementById("mobile-tabs");
-mobileTabs.addEventListener("click", e => {
-  const b = e.target.closest("button[data-m]");
-  if (!b) return;
-  document.body.classList.toggle("m-preview", b.dataset.m === "preview");
-  mobileTabs.querySelectorAll("button").forEach(x => x.classList.toggle("active", x === b));
-});
-
-/* 全屏 */
-document.getElementById("btn-fullscreen").addEventListener("click", () => {
-  if (document.fullscreenElement) document.exitFullscreen();
-  else document.documentElement.requestFullscreen?.();
-});
-
-/* 导出 .md */
-document.getElementById("btn-export").addEventListener("click", () => {
-  const blob = new Blob([view.state.doc.toString()], { type: "text/markdown;charset=utf-8" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "日记_" + new Date().toISOString().slice(0, 10) + ".md";
-  a.click(); URL.revokeObjectURL(a.href);
-});
-
-/* 关于（自家的，随便看） */
-document.getElementById("btn-about").addEventListener("click", () => {
-  const modal = document.createElement("div");
-  modal.className = "fw-modal";
-  modal.innerHTML = `<div class="fw-modal-box">
-    <div class="fw-modal-head">关于本编辑器<span class="fw-modal-close">✕</span></div>
-    <ul>
-      <li>编辑器内核：CodeMirror 6（MIT 协议）</li>
-      <li>外壳、工具栏与短代码渲染：鱼窝自研</li>
-      <li>图标：Lucide（ISC 协议）</li>
-      <li>草稿自动保存在本机浏览器，不上传</li>
-    </ul>
-  </div>`;
-  document.body.appendChild(modal);
-  modal.addEventListener("click", e => { if (e.target === modal || e.target.classList.contains("fw-modal-close")) modal.remove(); });
-});
-
-/* 贴图：暂以本地预览插入，正式接入后改为直传服务器 */
-document.getElementById("btn-image").addEventListener("click", () => {
-  const input = document.createElement("input");
-  input.type = "file"; input.accept = "image/*";
-  input.onchange = () => {
-    const f = input.files[0]; if (!f) return;
-    const rd = new FileReader();
-    rd.onload = () => insert(view, `\n![${f.name}](${rd.result})\n`);
-    rd.readAsDataURL(f);
-  };
-  input.click();
-});
-view.dom.addEventListener("paste", e => {
-  const f = Array.from(e.clipboardData?.files || []).find(f => f.type.startsWith("image/"));
-  if (f) {
-    e.preventDefault();
-    const rd = new FileReader();
-    rd.onload = () => insert(view, `\n![截图](${rd.result})\n`);
-    rd.readAsDataURL(f);
+  let saveTimer = null;
+  function updateWordCount() {
+    if (!wordCountEl || !previewEl) return;
+    const clone = previewEl.cloneNode(true);
+    clone.querySelectorAll(".fw-code-head").forEach(n => n.remove()); /* 复制按钮等控件不计入 */
+    wordCountEl.textContent = (clone.textContent || "").replace(/\s/g, "").length + " 字";
   }
-});
+  function updatePreview() {
+    if (!previewEl) return;
+    previewEl.innerHTML = renderPreview(view.state.doc.toString());
+    enhanceCodeBlocks(previewEl);
+    updateWordCount();
+  }
+  function scheduleSave() {
+    if (!statusEl || !draftKey) return;
+    statusEl.textContent = "输入中…";
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      try {
+        localStorage.setItem(draftKey, view.state.doc.toString());
+        const t = new Date();
+        statusEl.textContent = `草稿已自动保存 ${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
+      } catch (e) { statusEl.textContent = "草稿保存失败（存储空间不足）"; }
+    }, 600);
+  }
 
-updatePreview();
-statusEl.textContent = localStorage.getItem(DRAFT_KEY) ? "已恢复上次草稿" : "新日记";
+  /* 嵌套代码块：按围栏语言名匹配，未匹配的退回纯文本 */
+  const codeLangs = {
+    python: () => python(),
+    javascript: () => javascript(),
+    typescript: () => javascript({ typescript: true }),
+    bash: () => new LanguageSupport(StreamLanguage.define(shell)),
+    sh: () => new LanguageSupport(StreamLanguage.define(shell)),
+  };
+  const mdLang = markdown({
+    base: markdownLanguage,
+    codeLanguages: (info) => (codeLangs[info?.toLowerCase()]?.() ?? null),
+  });
+
+  const v = new EditorView({
+    parent: editorEl,
+    state: EditorState.create({
+      doc: (draftKey && localStorage.getItem(draftKey)) || opts.initialDoc || "",
+      extensions: [
+        lineNumbers(),
+        history(),
+        search(),
+        highlightSelectionMatches(),
+        closeBrackets(),
+        keymap.of([
+          indentWithTab,
+          { key: "Enter", run: listEnter },
+          { key: "Mod-e", run: centerToggle },
+          ...historyKeymap,
+          ...searchKeymap,
+        ]),
+        mdLang,
+        syntaxHighlighting(fwHighlight),
+        editorTheme,
+        EditorView.domEventHandlers({
+          paste(e, v) {
+            const text = e.clipboardData?.getData("text/plain");
+            if (!text || !/^https?:\/\/\S+\.(png|jpe?g|gif|webp|bmp|svg)(\?\S*)?$/i.test(text.trim())) return false;
+            e.preventDefault();
+            const url = text.trim();
+            v.dispatch({ changes: { from: v.state.selection.main.from, to: v.state.selection.main.to, insert: `![图片](${url})` } });
+            return true;
+          },
+        }),
+        EditorView.updateListener.of(u => {
+          if (u.docChanged) { updatePreview(); scheduleSave(); if (opts.onChange) opts.onChange(); }
+        }),
+      ],
+    }),
+  });
+  view = v;
+
+  /* 工具栏渲染 */
+  if (opts.toolbarEl) {
+    TOOLBAR.forEach(item => {
+      if (item.sep) { opts.toolbarEl.appendChild(Object.assign(document.createElement("span"), { className: "tb-sep" })); return; }
+      const b = document.createElement("button");
+      b.type = "button"; b.title = item.title;
+      b.innerHTML = item.icon ? ico(item.icon) : `<span class="tb-text">${item.text}</span>`;
+      b.addEventListener("click", () => item.run(v, b));
+      opts.toolbarEl.appendChild(b);
+    });
+  }
+
+  updatePreview();
+  return {
+    view: v,
+    get: () => v.state.doc.toString(),
+    set: (text) => {
+      v.dispatch({ changes: { from: 0, to: v.state.doc.length, insert: text || "" } });
+      v.focus();
+    },
+    focus: () => v.focus(),
+  };
+}
+
+/* 嵌入模式：由宿主页面调用 YuwuEditor.create；演示页自动启动 */
+window.YuwuEditor = {
+  create: createYuwuEditor,
+  renderPreview,
+  enhance: enhanceCodeBlocks,
+  bindPreviewEvents,
+};
+
+/* ---------- 演示页启动 ---------- */
+if (!window.YW_EMBED_ONLY) {
+  const DRAFT_KEY = "yuwu_draft_v2_" + (location.pathname || "default");
+  const editorEl = document.getElementById("editor");
+  const previewEl = document.getElementById("preview");
+  const statusEl = document.getElementById("save-status");
+  const inst = createYuwuEditor({
+    editorEl,
+    previewEl,
+    statusEl,
+    wordCountEl: document.getElementById("word-count"),
+    draftKey: DRAFT_KEY,
+    initialDoc: DEFAULT_DOC,
+  });
+  window.__view = inst.view; /* 调试句柄 */
+
+  /* 顶栏按钮注入 Lucide 图标 */
+  const TOPBAR_ICONS = [
+    ["btn-image", "image-plus"], ["btn-export", "download"], ["btn-preview", "eye"],
+    ["btn-fullscreen", "maximize"], ["btn-about", "info"], ["btn-home", "home"],
+  ];
+  TOPBAR_ICONS.forEach(([id, name]) => {
+    const b = document.getElementById(id);
+    if (!b) return;
+    const label = b.textContent.trim();
+    b.innerHTML = ico(name) + `<span class="tbtn-label">${label}</span>`;
+  });
+
+  /* 分隔条拖动 */
+  const divider = document.getElementById("divider");
+  let dragging = false;
+  divider.addEventListener("pointerdown", e => { dragging = true; divider.setPointerCapture(e.pointerId); document.body.style.cursor = "col-resize"; });
+  divider.addEventListener("pointermove", e => {
+    if (!dragging) return;
+    const wrapRect = document.getElementById("split").getBoundingClientRect();
+    const pct = Math.min(80, Math.max(20, ((e.clientX - wrapRect.left) / wrapRect.width) * 100));
+    editorEl.style.width = pct + "%";
+  });
+  divider.addEventListener("pointerup", () => { dragging = false; document.body.style.cursor = ""; });
+
+  /* 预览开关（手机上由「编辑/预览」双标签接管） */
+  const isNarrow = () => window.matchMedia("(max-width: 760px)").matches;
+  const previewWrap = document.getElementById("preview-wrap");
+  document.getElementById("btn-preview").addEventListener("click", () => {
+    if (isNarrow()) { document.body.classList.toggle("m-preview"); return; }
+    const off = previewWrap.style.display === "none";
+    previewWrap.style.display = off ? "" : "none";
+    divider.style.display = off ? "" : "none";
+  });
+
+  /* 窄屏「编辑 / 预览」双标签 */
+  const mobileTabs = document.getElementById("mobile-tabs");
+  mobileTabs.addEventListener("click", e => {
+    const b = e.target.closest("button[data-m]");
+    if (!b) return;
+    document.body.classList.toggle("m-preview", b.dataset.m === "preview");
+    mobileTabs.querySelectorAll("button").forEach(x => x.classList.toggle("active", x === b));
+  });
+
+  /* 全屏 */
+  document.getElementById("btn-fullscreen").addEventListener("click", () => {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen?.();
+  });
+
+  /* 导出 .md */
+  document.getElementById("btn-export").addEventListener("click", () => {
+    const blob = new Blob([inst.get()], { type: "text/markdown;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "日记_" + new Date().toISOString().slice(0, 10) + ".md";
+    a.click(); URL.revokeObjectURL(a.href);
+  });
+
+  /* 关于（自家的，随便看） */
+  document.getElementById("btn-about").addEventListener("click", () => {
+    const modal = document.createElement("div");
+    modal.className = "fw-modal";
+    modal.innerHTML = `<div class="fw-modal-box">
+      <div class="fw-modal-head">关于本编辑器<span class="fw-modal-close">✕</span></div>
+      <ul>
+        <li>编辑器内核：CodeMirror 6（MIT 协议）</li>
+        <li>外壳、工具栏与短代码渲染：鱼窝自研</li>
+        <li>图标：Lucide（ISC 协议）</li>
+        <li>草稿自动保存在本机浏览器，不上传</li>
+      </ul>
+    </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener("click", e => { if (e.target === modal || e.target.classList.contains("fw-modal-close")) modal.remove(); });
+  });
+
+  /* 贴图：暂以本地预览插入，正式接入后改为直传服务器 */
+  document.getElementById("btn-image").addEventListener("click", () => {
+    const input = document.createElement("input");
+    input.type = "file"; input.accept = "image/*";
+    input.onchange = () => {
+      const f = input.files[0]; if (!f) return;
+      const rd = new FileReader();
+      rd.onload = () => insert(inst.view, `\n![${f.name}](${rd.result})\n`);
+      rd.readAsDataURL(f);
+    };
+    input.click();
+  });
+  inst.view.dom.addEventListener("paste", e => {
+    const f = Array.from(e.clipboardData?.files || []).find(f => f.type.startsWith("image/"));
+    if (f) {
+      e.preventDefault();
+      const rd = new FileReader();
+      rd.onload = () => insert(inst.view, `\n![截图](${rd.result})\n`);
+      rd.readAsDataURL(f);
+    }
+  });
+
+  statusEl.textContent = localStorage.getItem(DRAFT_KEY) ? "已恢复上次草稿" : "新日记";
+}
