@@ -309,9 +309,14 @@
   overflow: hidden; background: #fff;
 }
 @media (max-width: 760px) {
-  #articleEdWrap #split { flex-direction: column; }
-  #articleEdWrap #editor { width: 100% !important; flex: 1; border-bottom: 1px solid #e4e9ee; }
-  #articleEdWrap #preview-wrap { display: flex; flex: 1; }
+  /* 工具栏收成一行横向滑动，省出编辑区高度 */
+  #articleEdWrap #toolbar {
+    flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+    padding: 5px 8px;
+  }
+  #articleEdWrap #toolbar::-webkit-scrollbar { display: none; }
+  #articleEdWrap #toolbar .tb-sep { flex-shrink: 0; }
+  #articleEdWrap #toolbar button { flex: none; }
 }
 
 /* ---- 站点深色模式适配：跟随 3100 主题（body 无 .light-mode 即深色） ---- */
@@ -388,3 +393,6 @@ body:not(.light-mode) #articleEdWrap .fw-cloud-btn:hover { background: rgba(45,2
 body:not(.light-mode) #articleEdWrap .fw-grid-item { border-color: rgba(255,255,255,.1); color: #94A3B8; }
 body:not(.light-mode) #articleEdWrap .fw-tl-line { border-left-color: rgba(255,255,255,.1); }
 body:not(.light-mode) #articleEdWrap .fw-tl-dot { background: #0f1720; }
+body:not(.light-mode) #articleEdWrap #mobile-tabs { background: #0f1720; border-bottom-color: rgba(255,255,255,.08); }
+body:not(.light-mode) #articleEdWrap #mobile-tabs button { color: #64748B; }
+body:not(.light-mode) #articleEdWrap #mobile-tabs button.active { color: #2DD4BF; }

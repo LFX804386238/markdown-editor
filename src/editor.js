@@ -720,9 +720,23 @@ function createYuwuEditor(opts) {
   };
 }
 
+/* 嵌入模式窄屏「编辑 / 预览」双标签：wrap 内需有 #mobile-tabs，切换类挂在 wrap 上 */
+function bindMobileTabs(wrap) {
+  const tabs = wrap && wrap.querySelector ? wrap.querySelector("#mobile-tabs") : null;
+  if (!tabs || tabs.dataset.bound) return;
+  tabs.dataset.bound = "1";
+  tabs.addEventListener("click", e => {
+    const b = e.target.closest("button[data-m]");
+    if (!b) return;
+    wrap.classList.toggle("m-preview", b.dataset.m === "preview");
+    tabs.querySelectorAll("button").forEach(x => x.classList.toggle("active", x === b));
+  });
+}
+
 /* 嵌入模式：由宿主页面调用 YuwuEditor.create；演示页自动启动 */
 window.YuwuEditor = {
   create: createYuwuEditor,
+  bindMobileTabs,
   renderPreview,
   enhance: enhanceCodeBlocks,
   bindPreviewEvents,
