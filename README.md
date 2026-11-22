@@ -1,6 +1,6 @@
 # 鱼窝编辑器（cm-editor）· 项目说明
 
-自研 Markdown 编辑器：CodeMirror 6 内核，外壳、工具栏与短代码渲染全部鱼窝自研，无第三方主题代码。演示页：`http://114.116.224.172:3100/editor-demo/index.html`
+自研 Markdown 编辑器：CodeMirror 6 内核，外壳、工具栏与短代码渲染均为鱼窝自研。
 
 ## 文件结构
 
@@ -86,10 +86,10 @@
    ```
    npx esbuild src/editor.js --bundle --minify --outfile=bundle.js --loader:.json=json
    ```
-10. 部署三件套（index.html、style.css、bundle.js）到服务器 `/root/asset-ledger/fish3100/www/editor-demo/` 即可，纯静态，无后端。
+10. 部署三件套（index.html、style.css、bundle.js）到站点目录下的 `editor-demo/` 即可，纯静态，无后端。
 
 ## 当前版本
 
 - style.css v=18 / bundle.js v=27（2026-11-22）
 - 已验证：色板选色、容器内 Markdown 嵌套、容器内居中、演示文章各容器渲染
-- 待办：正式接入鱼窝 3081（Python 侧渲染待实现）
+- 待办：正式接入鱼窝站（Python 侧渲染待实现）

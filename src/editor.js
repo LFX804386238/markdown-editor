@@ -107,14 +107,14 @@ const editor = "自研";  // 换个语言试试
 借鉴参考稿：嵌套引用、代码块复制、窄屏双标签
 {/timeline-item}
 {timeline-item color="#ed4014"}
-待定：正式接入 3081
+待定：正式接入鱼窝站
 {/timeline-item}
 {/timeline}
 
 ## 卡片与按钮
 
 {card-describe title="关于本编辑器"}
-CodeMirror 6 内核，外壳与短代码渲染鱼窝自研，无第三方主题代码。
+CodeMirror 6 内核，外壳与短代码渲染鱼窝自研。
 {/card-describe}
 
 {card-list title="这轮新增"}
@@ -767,7 +767,7 @@ document.getElementById("btn-about").addEventListener("click", () => {
     <div class="fw-modal-head">关于本编辑器<span class="fw-modal-close">✕</span></div>
     <ul>
       <li>编辑器内核：CodeMirror 6（MIT 协议）</li>
-      <li>外壳、工具栏与短代码渲染：鱼窝自研，无第三方主题代码</li>
+      <li>外壳、工具栏与短代码渲染：鱼窝自研</li>
       <li>图标：Lucide（ISC 协议）</li>
       <li>草稿自动保存在本机浏览器，不上传</li>
     </ul>
