@@ -583,29 +583,30 @@ const TOOLBAR = [
 ];
 
 /* ---------- 主题色 ---------- */
+/* 颜色走 CSS 变量（浅色为回退默认值），嵌入模式由宿主主题覆盖变量实现深色跟随 */
 const fwHighlight = HighlightStyle.define([
-  { tag: tags.heading1, color: "#1f2d3d", fontWeight: "700", fontSize: "1.15em" },
-  { tag: tags.heading2, color: "#1f2d3d", fontWeight: "700" },
-  { tag: tags.heading3, color: "#1f2d3d", fontWeight: "600" },
-  { tag: tags.strong, color: "#c7254e", fontWeight: "700" },
-  { tag: tags.emphasis, color: "#8a6d3b", fontStyle: "italic" },
-  { tag: tags.strikethrough, textDecoration: "line-through", color: "#999" },
+  { tag: tags.heading1, color: "var(--yw-ed-ink, #1f2d3d)", fontWeight: "700", fontSize: "1.15em" },
+  { tag: tags.heading2, color: "var(--yw-ed-ink, #1f2d3d)", fontWeight: "700" },
+  { tag: tags.heading3, color: "var(--yw-ed-ink, #1f2d3d)", fontWeight: "600" },
+  { tag: tags.strong, color: "var(--yw-ed-strong, #c7254e)", fontWeight: "700" },
+  { tag: tags.emphasis, color: "var(--yw-ed-em, #8a6d3b)", fontStyle: "italic" },
+  { tag: tags.strikethrough, textDecoration: "line-through", color: "var(--yw-ed-muted, #999)" },
   { tag: tags.link, color: "#409eff" },
-  { tag: tags.monospace, color: "#e96900", background: "#f8f8f8" },
-  { tag: [tags.quote], color: "#7f8c9b", fontStyle: "italic" },
-  { tag: [tags.list, tags.contentSeparator], color: "#1f2d3d" },
-  { tag: tags.processingInstruction, color: "#8a97a5" },
+  { tag: tags.monospace, color: "var(--yw-ed-code-inline, #e96900)", background: "var(--yw-ed-code-inline-bg, #f8f8f8)" },
+  { tag: [tags.quote], color: "var(--yw-ed-muted, #7f8c9b)", fontStyle: "italic" },
+  { tag: [tags.list, tags.contentSeparator], color: "var(--yw-ed-ink, #1f2d3d)" },
+  { tag: tags.processingInstruction, color: "var(--yw-ed-muted, #8a97a5)" },
 ]);
 
 const editorTheme = EditorView.theme({
-  "&": { fontSize: "14.5px", height: "100%", background: "#fff" },
+  "&": { fontSize: "14.5px", height: "100%", background: "var(--yw-ed-bg, #fff)" },
   ".cm-scroller": { fontFamily: `-apple-system, "PingFang SC", "Microsoft YaHei", sans-serif`, lineHeight: "1.75", padding: "14px 4px" },
-  ".cm-content": { caretColor: "#409eff" },
+  ".cm-content": { caretColor: "#409eff", color: "var(--yw-ed-ink, #1f2d3d)" },
   ".cm-cursor, .cm-dropCursor": { borderLeftColor: "#409eff", borderLeftWidth: "2px" },
-  "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection": { background: "#d6e9ff" },
-  ".cm-activeLine": { background: "#f7fafc" },
-  ".cm-gutters": { background: "#fafbfc", color: "#b3bec7", border: "none", minWidth: "44px" },
-  ".cm-activeLineGutter": { background: "#eef2f5", color: "#5a6b7b" },
+  "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection": { background: "var(--yw-ed-sel, #d6e9ff)" },
+  ".cm-activeLine": { background: "var(--yw-ed-activeline, #f7fafc)" },
+  ".cm-gutters": { background: "var(--yw-ed-gutter-bg, #fafbfc)", color: "var(--yw-ed-gutter-fg, #b3bec7)", border: "none", minWidth: "44px" },
+  ".cm-activeLineGutter": { background: "var(--yw-ed-activeline, #eef2f5)", color: "var(--yw-ed-gutter-fg-active, #5a6b7b)" },
 });
 
 /* ---------- 工厂：演示页与嵌入模式共用 ---------- */
@@ -737,6 +738,7 @@ if (!window.YW_EMBED_ONLY) {
     editorEl,
     previewEl,
     statusEl,
+    toolbarEl: document.getElementById("toolbar"),
     wordCountEl: document.getElementById("word-count"),
     draftKey: DRAFT_KEY,
     initialDoc: DEFAULT_DOC,
